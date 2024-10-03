@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Compressed rwz binary file name
-RWZ_TAR_GZ="rwz-0.3.0-alpha1-x86_64-linux-gnu.tar.gz"
+RWZ_TAR_GZ="rwz-0.3.0-alpha2-x86_64-linux-gnu.tar.gz"
 
 # URL to download the rwz compressed binary
-RWZ_URL="https://github.com/nodetec/relaywizard/releases/download/v0.3.0-alpha1/$RWZ_TAR_GZ"
+RWZ_URL="https://github.com/nodetec/relaywizard/releases/download/v0.3.0-alpha2/$RWZ_TAR_GZ"
 
 # Destination path for the rwz compressed binary
 TMP_RWZ_TAR_GZ="/tmp/$RWZ_TAR_GZ"

@@ -1,32 +1,173 @@
 #!/bin/bash
 
-# Compressed rwz binary file name
-RWZ_TAR_GZ="rwz-0.3.0-alpha3-x86_64-linux-gnu.tar.gz"
+TMP_DIR_PATH="/tmp"
+RWZ_RELEASES_URL="https://github.com/nodetec/relaywizard/releases/download"
+RWZ_VERSION="v0.3.0-alpha3"
+RWZ_TAR_GZ_FILE="rwz-0.3.0-alpha3-x86_64-linux-gnu.tar.gz"
+RWZ_DOWNLOAD_URL="$RWZ_RELEASES_URL/$RWZ_VERSION/$RWZ_TAR_GZ_FILE"
+TMP_RWZ_TAR_GZ_FILE_PATH="$TMP_DIR_PATH/$RWZ_TAR_GZ_FILE"
+PGP_KEYSERVER="keys.openpgp.org"
+NODE_TEC_PRIMARY_KEY_FINGERPRINT="04BD8C20598FA5FDDE19BECD8F2469F71314FAD7"
+NODE_TEC_SIGNING_SUBKEY_FINGERPRINT="252F57B9DCD920EBF14E6151A8841CC4D10CC288"
+RWZ_MANIFEST_SIG_FILE="rwz-0.3.0-alpha3-manifest.sha512sum.asc"
+RWZ_MANIFEST_SIG_FILE_URL="$RWZ_RELEASES_URL/$RWZ_VERSION/$RWZ_MANIFEST_SIG_FILE"
+TMP_RWZ_MANIFEST_SIG_FILE_PATH="$TMP_DIR_PATH/$RWZ_MANIFEST_SIG_FILE"
+RWZ_MANIFEST_FILE="rwz-0.3.0-alpha3-manifest.sha512sum"
+RWZ_MANIFEST_FILE_URL="$RWZ_RELEASES_URL/$RWZ_VERSION/$RWZ_MANIFEST_FILE"
+TMP_RWZ_MANIFEST_FILE_PATH="$TMP_DIR_PATH/$RWZ_MANIFEST_FILE"
+BINARY_DEST_DIR_PATH="/usr/local/bin"
+RWZ_BINARY_FILE="rwz"
 
-# URL to download the rwz compressed binary
-RWZ_URL="https://github.com/nodetec/relaywizard/releases/download/v0.3.0-alpha3/$RWZ_TAR_GZ"
+function file_exists() {
+  if [ -e "$1" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
-# Destination path for the rwz compressed binary
-TMP_RWZ_TAR_GZ="/tmp/$RWZ_TAR_GZ"
+function remove_file() {
+  if file_exists "$1"; then
+    rm "$1"
+    if [ $? -ne 0 ]; then
+      printf "Error: Failed to remove the $1 file\n"
+      exit 1
+    fi
+  fi
+}
+
+function download_file() {
+  curl -L -o "$1" "$2"
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to download the $3 file\n"
+    exit 1
+  fi
+}
+
+function set_file_permissions() {
+  chmod "$1" "$2"
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to set the $2 file permissions\n"
+    exit 1
+  fi
+}
+
+function import_pgp_key() {
+  gpg --keyserver "$1" --recv-keys "$2"
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to import NODE-TEC PGP key\n"
+    exit 1
+  fi
+}
+
+function verify_pgp_sig() {
+  local sig_file="$1" out=
+  if out=$(gpg --status-fd 1 --verify "$sig_file" 2>/dev/null) &&
+     echo "$out" | grep -qs "^\[GNUPG:\] VALIDSIG $NODE_TEC_SIGNING_SUBKEY_FINGERPRINT "; then
+       return 0
+  else
+    printf "$out\n" >&2
+    printf "Error: Failed to verify the signature of the $RWZ_MANIFEST_FILE\n"
+    exit 1
+  fi
+}
+
+function verify_file_hashes() {
+  local at_least_one_file_exists=false
+  # Read the manifest file line by line
+  if file_exists "$2" && [ -s "$2" ] && [ -r "$2" ]; then
+    while IFS= read -r line; do
+      # Extract the hash from the manifest file
+      local hash_in_manifest=$(echo "$line" | cut -d' ' -f1)
+      # Extract the file name from the manifest file
+      local file_in_manifest=$(echo "$line" | cut -d'*' -f2)
+
+      # Check if the corresponding file exists in the provided directory
+      if file_exists "$1/$file_in_manifest"; then
+        at_least_one_file_exists=true
+        # Calculate and extract the hash for the corresponding file located in the provided directory
+        local file_hash=$(sha512sum "$1/$file_in_manifest" | cut -d' ' -f1)
+        # Check if the hash of the file matches the hash in the manifest file
+        if [ "$file_hash" != "$hash_in_manifest" ]; then
+          printf "Error: $file_in_manifest hash mismatch with hash in $2\n"
+          exit 1
+        fi
+      fi
+      if [[ $at_least_one_file_exists == false ]]; then
+        printf "Error: No files specified in $2 found\n"
+        exit 1
+      fi
+    done < "$2"
+  else
+    printf "Error: Unable to verify file hashes in the $2 file\n"
+    exit 1
+  fi
+}
+
+function extract_file() {
+  tar -xf "$1" -C "$2"
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to extract $1 file to $2\n"
+    exit 1
+  fi
+}
+
+function rwz_install() {
+  "$1" install < /dev/tty
+}
+
+# Check if the rwz compressed binary exists and remove it if it does
+remove_file "$TMP_RWZ_TAR_GZ_FILE_PATH"
 
 # Download the rwz compressed binary
-echo "Downloading Relay Wizard from $RWZ_URL..."
-curl -L -o "$TMP_RWZ_TAR_GZ" "$RWZ_URL"
+printf "Downloading Relay Wizard from $RWZ_DOWNLOAD_URL...\n"
+download_file "$TMP_RWZ_TAR_GZ_FILE_PATH" "$RWZ_DOWNLOAD_URL" "$RWZ_TAR_GZ_FILE"
 
-# Destination path for the downloaded binary
-DEST_PATH="/usr/local/bin"
+# Set rwz compressed binary permissions
+set_file_permissions 0644 "$TMP_RWZ_TAR_GZ_FILE_PATH"
 
-# Extract rwz binary to the binary destination path
-echo "Extracting Relay Wizard to $DEST_PATH..."
-tar -xf "$TMP_RWZ_TAR_GZ" -C "$DEST_PATH"
+# Import NODE-TEC PGP key
+printf "Importing NODE-TEC PGP key from $PGP_KEYSERVER...\n"
+import_pgp_key "$PGP_KEYSERVER" "$NODE_TEC_PRIMARY_KEY_FINGERPRINT"
 
-# rwz binary name
-RWZ="rwz"
+# Check if the rwz manifest signature file exists and remove it if it does
+remove_file "$TMP_RWZ_MANIFEST_SIG_FILE_PATH"
 
-# Make the binary executable
-echo "Making rwz executable..."
-chmod +x "$DEST_PATH/$RWZ"
+# Download the rwz manifest signature file
+printf "Downloading Relay Wizard manifest signature file from $RWZ_MANIFEST_SIG_FILE_URL...\n"
+download_file "$TMP_RWZ_MANIFEST_SIG_FILE_PATH" "$RWZ_MANIFEST_SIG_FILE_URL" "$RWZ_MANIFEST_SIG_FILE"
 
-# Run the rwz install command
-echo "Running rwz install..."
-"$DEST_PATH/$RWZ" install < /dev/tty
+# Set rwz manifest signature file permissions
+set_file_permissions 0644 "$TMP_RWZ_MANIFEST_SIG_FILE_PATH"
+
+# Check if the rwz manifest file exists and remove it if it does
+remove_file "$TMP_RWZ_MANIFEST_FILE_PATH"
+
+# Download the rwz manifest file
+printf "Downloading Relay Wizard manifest file from $RWZ_MANIFEST_FILE_URL...\n"
+download_file "$TMP_RWZ_MANIFEST_FILE_PATH" "$RWZ_MANIFEST_FILE_URL" "$RWZ_MANIFEST_FILE"
+
+# Set rwz manifest file permissions
+set_file_permissions 0644 "$TMP_RWZ_MANIFEST_FILE_PATH"
+
+printf "Verifying $RWZ_TAR_GZ_FILE...\n"
+
+if verify_pgp_sig "$TMP_RWZ_MANIFEST_SIG_FILE_PATH"; then
+  printf "Verified the signature of the $RWZ_MANIFEST_FILE file\n"
+
+  verify_file_hashes "$TMP_DIR_PATH" "$TMP_RWZ_MANIFEST_FILE_PATH"
+
+  printf "Verified the hash of the $RWZ_TAR_GZ_FILE file\n"
+
+  # Extract rwz binary to the binary destination path
+  printf "Extracting Relay Wizard to $BINARY_DEST_DIR_PATH...\n"
+  extract_file "$TMP_RWZ_TAR_GZ_FILE_PATH" "$BINARY_DEST_DIR_PATH"
+
+  # Make the binary executable
+  printf "Making rwz executable...\n"
+  set_file_permissions 0755 "$BINARY_DEST_DIR_PATH/$RWZ_BINARY_FILE"
+
+  # Run the rwz install command
+  printf "Running rwz install...\n"
+  rwz_install "$BINARY_DEST_DIR_PATH/$RWZ_BINARY_FILE"
+fi

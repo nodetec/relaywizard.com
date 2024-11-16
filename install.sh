@@ -62,13 +62,20 @@ function import_pgp_key() {
 
 function verify_pgp_sig() {
   local sig_file="$1" out=
-  if out=$(gpg --status-fd 1 --verify "$sig_file" 2>/dev/null) &&
-     echo "$out" | grep -qs "^\[GNUPG:\] VALIDSIG $NODE_TEC_SIGNING_SUBKEY_FINGERPRINT "; then
-       return 0
-  else
+  out=$(gpg --status-fd 1 --verify "$sig_file" 2>/dev/null)
+  if [ $? -ne 0 ]; then
     printf "$out\n" >&2
     printf "Error: Failed to verify the signature of the $RWZ_MANIFEST_FILE\n"
     exit 1
+  else
+    echo "$out" | grep -qs "^\[GNUPG:\] VALIDSIG $NODE_TEC_SIGNING_SUBKEY_FINGERPRINT "
+    if [ $? -ne 0 ]; then
+      printf "$out\n" >&2
+      printf "Error: Failed to verify the signature of the $RWZ_MANIFEST_FILE\n"
+      exit 1
+    else
+      return 0
+    fi
   fi
 }
 
@@ -162,12 +169,14 @@ if verify_pgp_sig "$TMP_RWZ_MANIFEST_SIG_FILE_PATH"; then
   # Extract rwz binary to the binary destination path
   printf "Extracting Relay Wizard to $BINARY_DEST_DIR_PATH...\n"
   extract_file "$TMP_RWZ_TAR_GZ_FILE_PATH" "$BINARY_DEST_DIR_PATH"
+  printf "Extracted Relay Wizard to $BINARY_DEST_DIR_PATH\n"
 
   # Make the binary executable
-  printf "Making rwz executable...\n"
+  printf "Making $RWZ_BINARY_FILE executable...\n"
   set_file_permissions 0755 "$BINARY_DEST_DIR_PATH/$RWZ_BINARY_FILE"
+  printf "Made $RWZ_BINARY_FILE executable\n"
 
   # Run the rwz install command
-  printf "Running rwz install...\n"
+  printf "Running $RWZ_BINARY_FILE install...\n"
   rwz_install "$BINARY_DEST_DIR_PATH/$RWZ_BINARY_FILE"
 fi

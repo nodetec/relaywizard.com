@@ -19,7 +19,7 @@ BINARY_DEST_DIR_PATH="/usr/local/bin"
 RWZ_BINARY_FILE="rwz"
 
 function file_exists() {
-  if [ -e "$1" ]; then
+  if [ -f "$1" ]; then
     return 0
   else
     return 1
@@ -113,7 +113,7 @@ function extract_file() {
 }
 
 function rwz_install() {
-  "$1" install < /dev/tty
+  "$1" install
 }
 
 # Check if the rwz compressed binary exists and remove it if it does

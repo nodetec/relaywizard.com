@@ -120,7 +120,7 @@ function extract_file() {
 }
 
 function rwz_install() {
-  "$1" install
+  "$1" install < /dev/tty
 }
 
 # Check if the rwz compressed binary exists and remove it if it does

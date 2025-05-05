@@ -52,6 +52,22 @@ function set_file_permissions() {
   fi
 }
 
+function update_packages() {
+  apt update -qq
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to update packages\n"
+    exit 1
+  fi
+}
+
+function install_gnupg() {
+  apt install -y -qq gnupg
+  if [ $? -ne 0 ]; then
+    printf "Error: Failed to install gnupg\n"
+    exit 1
+  fi
+}
+
 function import_pgp_key() {
   gpg --keyserver "$1" --recv-keys "$2"
   if [ $? -ne 0 ]; then
@@ -132,6 +148,12 @@ download_file "$TMP_RWZ_TAR_GZ_FILE_PATH" "$RWZ_DOWNLOAD_URL" "$RWZ_TAR_GZ_FILE"
 
 # Set rwz compressed binary permissions
 set_file_permissions 0644 "$TMP_RWZ_TAR_GZ_FILE_PATH"
+
+# Update packages
+update_packages
+
+# Install GnuPG
+install_gnupg
 
 # Import NODE-TEC PGP key
 printf "Importing NODE-TEC PGP key from $PGP_KEYSERVER...\n"

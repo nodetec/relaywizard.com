@@ -1,11 +1,27 @@
 {
   "name": "relaywizard.com",
   "version": "0.0.1",
-  "description": "Website for relay wizard",
+  "description": "Website for Relay Wizard",
   "scripts": {
     "build": "tailwindcss -i ./input.css -o ./output.css",
     "watch": "tailwindcss -i ./input.css -o ./output.css --watch"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nodetec/relaywizard.com.git"
+  },
+  "keywords": [
+    "NODE-TEC",
+    "Nostr",
+    "Relays",
+    "Wizard",
+    "cli"
+  ],
+  "author": "NODE-TEC <devs@node-tec.com> (https://nodetec.substack.com)",
+  "bugs": {
+    "url": "https://github.com/nodetec/relaywizard.com/issues"
+  },
+  "homepage": "https://github.com/nodetec/relaywizard.com#readme",
   "devDependencies": {
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",

@@ -4,5 +4,5 @@
 
 @font-face {
   font-family: "Cinzel";
-  src: url("./fonts/cinzel/Cinzel-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/cinzel/Cinzel-VariableFont_wght.ttf") format("truetype");
 }

@@ -59,7 +59,8 @@
         Install Relay Wizard
       </h2>
       <div class="relative">
-        <input type="text" id="textToCopy" readonly value="curl -sL https://relaywizard.com/install.sh | bash"
+        <input type="text" id="textToCopy" readonly
+          value="curl --proto '=https' --tlsv1.2 -sL https://relaywizard.com/install.sh | bash"
           class="w-full bg-gray-300 p-2 pr-10 border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
         <button id="copyButton"
           class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">

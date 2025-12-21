@@ -19,7 +19,7 @@ Website for [Relay Wizard](https://relaywizard.com/ "Relay Wizard") which is a C
 The website hosts the Relay Wizard installation script which you can run on a Debian server after hooking up a domain name by running the following command:
 
 ```bash
-curl -sL https://relaywizard.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sL https://relaywizard.com/install.sh | bash
 ```
 
 ## Learn more
